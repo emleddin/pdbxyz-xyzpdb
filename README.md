@@ -50,8 +50,11 @@ be printed to the Terminal. Additionally, the final XYZ will have
 If `xyzpdb` cannot find a residue name, the residue name will be assigned 
 as `FIX`. A warning that this occurred will be printed to the terminal.
 
+If you're using `xyzpdb` for a visualization program, check that each segment has the requisite `TER` cards.
+
 ## Future plans:
 - Adapt pdbxyz-for-amber.py to run with AMOEBA paramter sets as well.
 - Add argparse / something for command-line input.
 - Investigate limits to residue numbering/ways to get around that.
+- Fix TER cards after protein in xyzpdb.
 - Maybe actually formulate this into a Python package with tests?
