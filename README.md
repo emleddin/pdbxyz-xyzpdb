@@ -52,9 +52,17 @@ as `FIX`. A warning that this occurred will be printed to the terminal.
 
 If you're using `xyzpdb` for a visualization program, check that each segment has the requisite `TER` cards.
 
+## Errors Encountered with Analyze
+Sometimes when using AMBER parameter files, TINKER `analyze` will say there are missing
+angles or torsions.
+These parameters are likely to be defined in the 
+[relevant AMBER parm files](http://http://ambermd.org/AmberModels.php).
+Add them to your TINKER parameter file and you should be golden.
+
 ## Future plans:
 - Adapt pdbxyz-for-amber.py to run with AMOEBA paramter sets as well.
 - Add argparse / something for command-line input.
 - Investigate limits to residue numbering/ways to get around that.
 - Fix TER cards after protein in xyzpdb.
 - Maybe actually formulate this into a Python package with tests?
+- Fix DX5 HO5' atoms classed incorrectly with AMBER prm files (1244 instead of 1245).
