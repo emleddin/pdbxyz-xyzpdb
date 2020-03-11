@@ -4,10 +4,10 @@ import pandas as pd
 import re
 import sys
 
-infile="system.pdb"
-outfile="test.xyz"
+infile="crambin.pdb"
+outfile="crambin_convert.xyz"
 
-param_file="amber99sb.prm"
+param_file="amoebapro13.prm"
 atom_lines="atom-lines.txt"
 
 test_csv="test.csv"
@@ -130,7 +130,8 @@ def load_pdb(filename):
 def read_prm(param_file, atom_lines):
     """Based on using grep to locate atom lines."""
     parm_atom_lines = []
-    pattern = '(?i)^atom' # case insensitive, starts line
+    pattern = '(?i)^atom ' # case insensitive, starts line
+                           # keep the space to not match "atomic" in AMOEBA
     for line in open(param_file).readlines():
         if re.match(pattern, line):
             parm_atom_lines.append(line)
@@ -139,7 +140,6 @@ def read_prm(param_file, atom_lines):
         filehandle.writelines("%s" % line for line in parm_atom_lines)
     filehandle.close()
 
-# def fix_params(atom_lines):
 def fix_params(atom_lines,test_csv):
     """Read the atom_lines file into a pandas object. Rewrite the story
     (quoted) section into PDB residue names and atom names through as series
@@ -147,19 +147,40 @@ def fix_params(atom_lines,test_csv):
     lines = pd.read_csv(atom_lines, sep='[\s]{2,}', header=None,
      names=["what","T_type","T_atom_class","A_atom_type","A_names","element",
      "mass","connectivity"], engine='python')
-
+    ##
     ## Remove the double quotes in the A_names column
     lines.A_names = lines.A_names.replace({'"':''}, regex=True)
-
+    ##
     ## Determine if AMOEBA or AMBER based on aspartic acid
     ## While they vary by the space, this *should* check user-adjusted lines
     ## Labeled Aspartate in AMOEBA sets, but aspartic acid in AMBER
     ## AMBER version needs to be ASP, AMOEBA is ASH
     trial = lines[lines['A_names'].str.contains(r'(?i)Aspartate', regex=True)]
-    if trial['A_names'].any() == True:
-        lines.A_names = lines.A_names.str.replace(r'(?i)Aspartic Acid ', 'ASH',
+    if trial.A_names.empty == False:
+        print("Processing as AMOEBA parameters.")
+        AMOEBA = True
+        lines.A_names = lines.A_names.str.replace(r'(?i)Aspartic Acid', 'ASH',
           regex=True)
-
+        lines.A_names = lines.A_names.str.replace(r'(?i)Aspartate', 'ASP',
+         regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)Glutamate', 'GLU',
+         regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)N\-MeAmide Cap', 'XXX',
+         regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)Amide Cap', 'XXX',
+         regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)N\-Terminal PRO',
+         'NPRO', regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)C\-Terminal COOH',
+         'XXX', regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)N\-Terminal',
+         'NTE', regex=True)
+        lines.A_names = lines.A_names.str.replace(r'(?i)C\-Terminal',
+         'CTE', regex=True)
+    else:
+        print("Processing as AMBER parameters.")
+        AMOEBA = False
+    ##
     ## Replace names of special residues (use the ?i regex to ignore case)
     ## Histidine
     lines.A_names = lines.A_names.str.replace(r'(?i)Histidine \(HD\)', 'HID',
@@ -190,7 +211,7 @@ def fix_params(atom_lines,test_csv):
     ## Lysine
     lines.A_names = lines.A_names.str.replace(r'(?i)Lysine \(NH2\)', 'LYN',
       regex=True)
-    lines.A_names = lines.A_names.str.replace(r'(?i)Lysine \(Neutral\) ', 'LYN',
+    lines.A_names = lines.A_names.str.replace(r'(?i)Lysine \(Neutral\)', 'LYN',
       regex=True)
     ## Tyrosine
     lines.A_names = lines.A_names.str.replace(r'(?i)Tyrosine Anion', 'TYD',
@@ -218,11 +239,11 @@ def fix_params(atom_lines,test_csv):
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Acetyl', 'ACE',
       regex=True)
-
+    ##
     ## Replace standards with 3 letter codes
     lines.A_names = lines.A_names.str.replace(r'(?i)Aspartic Acid', 'ASP',
       regex=True)
-    lines.A_names = lines.A_names.str.replace(r'(?i)Glutamic Acid', 'GLU',
+    lines.A_names = lines.A_names.str.replace(r'(?i)Glutamic Acid', 'GLH',
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Phenylalanine', 'PHE',
       regex=True)
@@ -260,7 +281,7 @@ def fix_params(atom_lines,test_csv):
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Valine', 'VAL',
       regex=True)
-
+    ##
     ## RNA
     lines.A_names = lines.A_names.str.replace(r'(?i)R-Adenosine', 'RA',
       regex=True)
@@ -285,7 +306,7 @@ def fix_params(atom_lines,test_csv):
       'RX3 HO3\'', regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)R\-3\'\-Hydroxyl', 'RX3',
       regex=True)
-
+    ##
     ## DNA
     lines.A_names = lines.A_names.str.replace(r'(?i)D-Adenosine', 'DA',
       regex=True)
@@ -309,7 +330,7 @@ def fix_params(atom_lines,test_csv):
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)D\-3\'\-Phosphate', 'DX3',
       regex=True)
-
+    ##
     ## AMOEBA nucleics...
     lines.A_names = lines.A_names.replace({'\(CT\)':''}, regex=True)
     lines.A_names = lines.A_names.replace({'\(CU\)':''}, regex=True)
@@ -318,7 +339,7 @@ def fix_params(atom_lines,test_csv):
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Ribose', 'RX',
       regex=True)
-
+    ##
     ## Do the same with water
     lines.A_names = lines.A_names.str.replace(r'(?i)TIP3P Oxygen', 'WAT O',
       regex=True)
@@ -326,7 +347,7 @@ def fix_params(atom_lines,test_csv):
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)AMOEBA Water', 'WAT',
       regex=True)
-
+    ##
     ## Remove the word "Ion"
     lines.A_names = lines.A_names.replace({' Ion':''}, regex=True)
     ## Do the same with ions
@@ -368,7 +389,7 @@ def fix_params(atom_lines,test_csv):
     lines.A_names = lines.A_names.str.replace(r'(?i)I\-', 'I', regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Ba\+2', 'BA', regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Sr\+2', 'SR', regex=True)
-
+    ##
     ## User-defined
     ## The search string is what is listed in the string of the prm file's
     ## atom line for a given atom type and the replace string is the ResName
@@ -383,21 +404,19 @@ def fix_params(atom_lines,test_csv):
     #   regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)DUP -Phosphate', 'CTP',
       regex=True)
-
+    ##
     ## Print the new lines for testing
     #lines.to_csv(test_csv, index=False, encoding='utf8')
-
     ## Now split the column into two columns
     convert = lines['A_names'].str.split(" ", n=1, expand=True)
     ## Add those new columns back into the atom lines
     lines['ResName'] = convert[0]
     lines['AtomName'] = convert[1]
-
     ## Print the new lines for testing
     lines.to_csv(test_csv, index=False, encoding='utf8')
-    return lines
+    return lines, AMOEBA
 
-def convert_names(system, lines):
+def convert_names(system, lines, AMOEBA):
     """For every atom, find lines matching the residue name in the
     pandas_object. From those lines, check for lines that match the atom name.
     If a match isn't found, check through the known naming problems. Update the
@@ -518,7 +537,19 @@ def convert_names(system, lines):
                     atom_test = res_test[res_test.AtomName == test_name]
                     ### Fix the duplicates/triplicates here
                     if atom_test.empty == True:
-                        if test_name == ('H'):
+                        if AMOEBA == True:
+                            test_RN = 'CTE'
+                            res_test = lines[lines.ResName == test_RN]
+                            if atom.name in ('C'):
+                                atom_test = res_test[res_test.A_atom_type == atom.name]
+                            elif atom.name in ('OXT'):
+                                test_name = 'O'
+                                atom_test = res_test[res_test.A_atom_type == test_name]
+                            elif atom.name in ('N','CA','O'):
+                                test_RN = 'ALA'
+                                res_test = lines[lines.ResName == test_RN]
+                                atom_test = res_test[res_test.AtomName == atom.name]
+                        elif test_name == ('H'):
                             test_name = 'HN'
                             atom_test = res_test[res_test.AtomName == test_name]
                         elif test_name in ('HA2', 'HA3'):
@@ -720,6 +751,96 @@ def convert_names(system, lines):
                     elif atom.name in ('CH3'):
                         test_name = 'C'
                         atom_test = res_test[res_test.AtomName == test_name]
+                #############################################
+                ##    Deal with AMOEBA ALA Standard...     ##
+                #############################################
+                elif AMOEBA == True:
+                    # IGNORE Proline, Glycine, Cysteine Anion (CYM), & N-TERM
+                    if residue.name in ('ASN','ASH','CYS','CYX','GLH',\
+                    'GLN','HID','HIE','HIP','HIS','LYS','MET',\
+                    'SER','THR','TRP'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                    elif residue.name in ('ARG'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('NH1', 'NH2'):
+                            test_name = 'NH'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HH
+                    elif residue.name in ('ASP'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('OD1', 'OD2'):
+                            test_name = 'OD'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                    elif residue.name in ('GLU'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('OE1', 'OE2'):
+                            test_name = 'OE'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                    elif residue.name in ('ILE'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('CD1', 'CD2'):
+                            test_name = 'CD'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HD
+                    elif residue.name in ('LEU'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('CD1', 'CD2'):
+                            test_name = 'CD'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HD
+                    elif residue.name in ('PHE'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('CE1', 'CE2'):
+                            test_name = 'CE'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HE
+                        elif atom.name in ('CD1', 'CD2'):
+                            test_name = 'CD'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HD
+                    elif residue.name in ('TYR'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('CD1', 'CD2'):
+                            test_name = 'CD'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HD
+                        elif atom.name in ('CE1', 'CE2'):
+                            test_name = 'CE'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HE
+                    elif residue.name in ('VAL'):
+                        if atom.name in ('N','CA','C','O'):
+                            test_RN = 'ALA'
+                            res_test = lines[lines.ResName == test_RN]
+                            atom_test = res_test[res_test.AtomName == atom.name]
+                        elif atom.name in ('CG1', 'CG2'):
+                            test_name = 'CG'
+                            atom_test = res_test[res_test.AtomName == test_name]
+                        ## Might need condition for HG
                 #############################################
                 ##    Catch non-standard problems here!    ##
                 #############################################
@@ -936,7 +1057,7 @@ def write_xyz(system, outfile):
 read_prm(param_file, atom_lines)
 
 try:
-    lines = fix_params(atom_lines,test_csv)
+    lines, AMOEBA = fix_params(atom_lines,test_csv)
 except pd.errors.ParserError:
     print("""
           ,-~~-.___.
@@ -954,7 +1075,7 @@ except pd.errors.ParserError:
 
 system = load_pdb(infile)
 
-system = convert_names(system, lines)
+system = convert_names(system, lines, AMOEBA)
 
 write_xyz(system, outfile)
 
