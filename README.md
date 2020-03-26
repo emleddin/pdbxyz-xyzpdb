@@ -13,6 +13,11 @@ fail with nucleic acids and solvated systems with numerous WAT/HOH residues.
 This doesn't seem to be an issue for visualization with VMD, but may be 
 important for other programs.
 
+### A Note on AMBER Parameters
+- The TINKER distribution of `amber96.prm`, `amber99.prm`, `amber99sb.prm` uses `Glutamic Acid` to refer
+to the AMBER `GLU` NOT `GLH`. As such, `GLH` is not included in the parameter sets, and will need to be 
+added as a "non-standard." `amber94.prm` and `amber98.prm` both use `Glutamic Acid (COOH)` for `GLH`.
+
 ## How
 The first few lines specify the `infile`, `outfile`, and `prmfile`. Change these to reflect your system.
 
