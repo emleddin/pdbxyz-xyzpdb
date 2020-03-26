@@ -243,7 +243,10 @@ def fix_params(atom_lines,test_csv):
     ## Replace standards with 3 letter codes
     lines.A_names = lines.A_names.str.replace(r'(?i)Aspartic Acid', 'ASP',
       regex=True)
-    lines.A_names = lines.A_names.str.replace(r'(?i)Glutamic Acid', 'GLH',
+    ## The default params list incorrectly uses Glutamic Acid to mean GLU
+    ## NOT glutamate. If you need the actual glutamic acid, you need to add
+    ## params for GLH
+    lines.A_names = lines.A_names.str.replace(r'(?i)Glutamic Acid', 'GLU',
       regex=True)
     lines.A_names = lines.A_names.str.replace(r'(?i)Phenylalanine', 'PHE',
       regex=True)
