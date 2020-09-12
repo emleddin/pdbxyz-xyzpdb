@@ -15,7 +15,7 @@ important for other programs.
 
 `pdbxyz4amber-pmd-params.py` is meant to work with prmtop-based parameter files
 created using
-[`generate_TINKER_parameters.py`](https://github.com/emleddin/research-scripts/blob/master/tinker-params/generate_TINKER_parameters.py).
+[`generate_TINKER_parameters.py`](https://github.com/emleddin/research-scripts/blob/main/tinker-params/generate_TINKER_parameters.py).
 This is because the `.prm` files the script generates are written in a
 standardized format, where atom name strings are composed of only the residue's
 3-letter code and atom name.
