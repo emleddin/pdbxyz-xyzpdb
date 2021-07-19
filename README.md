@@ -9,11 +9,11 @@ fail with nucleic acids and solvated systems with numerous WAT/HOH residues.
 `pdbxyz-for-amber.py` works for AMBER parameter sets.
 
 `pdbxyz-for-amoeba.py` works for AMOEBA bio, pro, and nuc parameter sets.
-- This assumes a generic `HIS` is `HIE` (protonated at N-epsilon). 
+- This assumes a generic `HIS` is `HIE` (protonated at N-epsilon).
 If you only use `HIS` in your PDB, make sure you modify different protonation
 states to `HIP` (both N-epsilon and N-delta) or `HID` (N-delta) naming.
 
-`xyzpdb-for-amber.py` works for both AMBER and AMOEBA parameter sets.
+`xyzpdb.py` works for both AMBER and AMOEBA parameter sets.
 - Residue writing is limited to 9999 total residues, before starting back at 1.
 This doesn't seem to be an issue for visualization with VMD, but may be
 important for other programs.
